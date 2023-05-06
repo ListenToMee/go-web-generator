@@ -102,14 +102,14 @@ func createPO(tables []TableResult, fields []FieldResult, tableName string) {
 	}
 
 	// 先删除文件,保证每次新建都是从数据库中取的最新结构
-	err := os.RemoveAll("./po/" + utils.TransToCamelAndFirstUpper(tableName) + "PO.go")
+	err := os.RemoveAll("./po/" + utils.TransToCamel(tableName) + "PO.go")
 	if err != nil {
 		fmt.Println(err)
 		panic(errors.New("cannot delete the dictionary PO"))
 	}
 
 	// 创建PO文件
-	create, _ := os.Create("./po/" + utils.TransToCamelAndFirstUpper(tableName) + "PO.go")
+	create, _ := os.Create("./po/" + utils.TransToCamel(tableName) + "PO.go")
 
 	// 校验是否存在po模板
 	t := template.Must(template.ParseGlob("./template/po.tpl"))
