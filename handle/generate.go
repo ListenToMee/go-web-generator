@@ -74,15 +74,20 @@ func doGenerate(con *gorm.DB, database string, tableName string) {
 	}(fieldQuery)
 
 	// 表信息转换到切片中
-	table := convertTable(con, tableQuery)
+	tables := convertTable(con, tableQuery)
 	// 表中的属性信息转换到切片中
 	fields := convertField(con, fieldQuery)
+
+	// 校验表是否存在
+	if len(tables) == 0 {
+		panic(errors.New("cannot find the table: " + tableName))
+	}
 
 	// 处理属性
 	handleFields(fields)
 
 	// 创建文件
-	createFiles(table, fields, tableName)
+	createFiles(tables, fields, tableName)
 }
 
 func createFiles(tables []TableResult, fields []FieldResult, tableName string) {

@@ -28,12 +28,23 @@ func TransToCamel(s string) string {
 // GetTypeMap 获取类型转换map
 func GetTypeMap() map[string]string {
 	return map[string]string{
-		"varchar":  "string",
-		"char":     "string",
-		"text":     "string",
-		"longtext": "string",
-		"int":      "int",
-		"tinyint":  "int",
-		"datetime": "time.Time",
+		"varchar":    "string",
+		"char":       "string",
+		"text":       "string",
+		"longtext":   "string",
+		"tinytext":   "string",
+		"mediumtext": "string",
+		"int":        "int32",
+		"smallint":   "int32",
+		"mediumint":  "int32",
+		"bigint":     "int64",
+		"tinyint":    "int32",
+		"datetime":   "time.Time",
+		"year":       "time.Time",
+		"time":       "time.Time",
+		"timestamp":  "time.Time",
+		"float":      "float64",
+		"double":     "float64",
+		"decimal":    "float64",
 	}
 }
