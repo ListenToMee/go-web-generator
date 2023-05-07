@@ -33,8 +33,14 @@ type POObject struct {
 	Table  TableResult
 }
 
+func Generate(url string, database string, tableNames []string) {
+
+	// 获取数据库连接，生成
+	generateCode(connect(url), database, tableNames)
+}
+
 // Generate 生成代码
-func Generate(con *gorm.DB, database string, tableNames []string) {
+func generateCode(con *gorm.DB, database string, tableNames []string) {
 
 	// 循环生成
 	for _, tableName := range tableNames {
@@ -182,8 +188,8 @@ func convertTable(con *gorm.DB, query *sql.Rows) []TableResult {
 	return tables
 }
 
-// Connect 获取连接
-func Connect(url string) *gorm.DB {
+// 获取连接
+func connect(url string) *gorm.DB {
 
 	if len(url) == 0 {
 		panic(errors.New("connection strings cannot be empty"))
