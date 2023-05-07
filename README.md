@@ -11,5 +11,6 @@ func main() {
 	"databaseName", 
 	[]string{"tableName1","tableName2"})
 }
+```
 
-目前版本只支持根据表结构生成实体类，未完待续～
+目前版本只支持 mysql 表结构生成实体类，未完待续～
