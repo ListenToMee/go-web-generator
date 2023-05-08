@@ -25,6 +25,7 @@ type FieldResult struct {
 
 type TableResult struct {
 	TableName    string
+	Uri          string
 	TableComment string
 }
 
@@ -89,7 +90,8 @@ func doGenerate(con *gorm.DB, database string, tableName string, moduleName stri
 
 	// 设置表信息
 	tableInfo := tables[0]
-	tableInfo.TableName = utils.TransToCamel(tableName)
+	tableInfo.TableName = utils.TransToCamel(tableName, false)
+	tableInfo.Uri = utils.TransToCamel(tableName, true)
 
 	// 定义模板中需要访问的对象并赋值
 	var object CommonObject
@@ -118,16 +120,52 @@ func createFiles(obj CommonObject, tableName string) {
 	// 创建controller
 	createController(obj, tableName)
 
-	// todo 创建router
+	// 创建router
+	createRouter(obj, tableName)
 
-	// todo 创建service
+	// 创建service
+	createService(obj, tableName)
+}
+
+// 创建router相关文件
+func createService(obj CommonObject, tableName string) {
+
+	// 创建文件
+	file := createFile(utils.TransToCamel(tableName, false)+"Service.go", "./service")
+
+	// 校验是否存在po模板
+	t := template.Must(template.ParseGlob("./template/service.tpl"))
+
+	// 根据模板生成文件
+	createPOError := t.ExecuteTemplate(file, "service", obj)
+	if createPOError != nil {
+		fmt.Println(createPOError)
+		panic(errors.New("cannot create files with the template"))
+	}
+}
+
+// 创建router相关文件
+func createRouter(obj CommonObject, tableName string) {
+
+	// 创建文件
+	file := createFile(utils.TransToCamel(tableName, false)+"Router.go", "./router")
+
+	// 校验是否存在po模板
+	t := template.Must(template.ParseGlob("./template/router.tpl"))
+
+	// 根据模板生成文件
+	createPOError := t.ExecuteTemplate(file, "router", obj)
+	if createPOError != nil {
+		fmt.Println(createPOError)
+		panic(errors.New("cannot create files with the template"))
+	}
 }
 
 // 创建controller相关文件
 func createController(obj CommonObject, tableName string) {
 
 	// 创建文件
-	file := createFile(utils.TransToCamel(tableName)+"Controller.go", "./controller")
+	file := createFile(utils.TransToCamel(tableName, false)+"Controller.go", "./controller")
 
 	// 校验是否存在po模板
 	t := template.Must(template.ParseGlob("./template/controller.tpl"))
@@ -144,7 +182,7 @@ func createController(obj CommonObject, tableName string) {
 func createVO(obj CommonObject, tableName string) {
 
 	// 创建文件
-	file := createFile(utils.TransToCamel(tableName)+"VO.go", "./vo")
+	file := createFile(utils.TransToCamel(tableName, false)+"VO.go", "./vo")
 
 	// 校验是否存在po模板
 	t := template.Must(template.ParseGlob("./template/vo.tpl"))
@@ -161,7 +199,7 @@ func createVO(obj CommonObject, tableName string) {
 func createAddDTO(obj CommonObject, tableName string) {
 
 	// 创建文件
-	file := createFile(utils.TransToCamel(tableName)+"AddDTO.go", "./dto")
+	file := createFile(utils.TransToCamel(tableName, false)+"AddDTO.go", "./dto")
 
 	// 校验是否存在po模板
 	t := template.Must(template.ParseGlob("./template/addDto.tpl"))
@@ -178,7 +216,7 @@ func createAddDTO(obj CommonObject, tableName string) {
 func createPageDTO(obj CommonObject, tableName string) {
 
 	// 创建文件
-	file := createFile(utils.TransToCamel(tableName)+"PageDTO.go", "./dto")
+	file := createFile(utils.TransToCamel(tableName, false)+"PageDTO.go", "./dto")
 
 	// 校验是否存在po模板
 	t := template.Must(template.ParseGlob("./template/pageDto.tpl"))
@@ -195,7 +233,7 @@ func createPageDTO(obj CommonObject, tableName string) {
 func createPO(obj CommonObject, tableName string) {
 
 	// 创建文件
-	file := createFile(utils.TransToCamel(tableName)+"PO.go", "./po")
+	file := createFile(utils.TransToCamel(tableName, false)+"PO.go", "./po")
 
 	// 校验是否存在po模板
 	t := template.Must(template.ParseGlob("./template/po.tpl"))
@@ -244,7 +282,13 @@ func handleFields(fields []FieldResult) {
 	// 处理属性
 	for i, f := range fields {
 		fields[i].RealType = typeMap[f.DataType]
-		fields[i].CamelField = utils.TransToCamel(f.ColumnName)
+
+		// 字段注释
+		if len(fields[i].ColumnComment) != 0 {
+			fields[i].ColumnComment = "// " + fields[i].ColumnComment
+		}
+
+		fields[i].CamelField = utils.TransToCamel(f.ColumnName, false)
 		// 如果是主键，设置
 		if f.ColumnKey == "PRI" {
 			fields[i].KeyStr = " gorm:\"primary_key\""

@@ -1,7 +1,7 @@
 package utils
 
 // TransToCamel 字符串：下划线转驼峰
-func TransToCamel(s string) string {
+func TransToCamel(s string, firstLowerCase bool) string {
 	data := make([]byte, 0, len(s))
 	j := false
 	k := false
@@ -19,6 +19,10 @@ func TransToCamel(s string) string {
 		if k && d == '_' && num > i && s[i+1] >= 'a' && s[i+1] <= 'z' {
 			j = true
 			continue
+		}
+		// 首字母小写
+		if firstLowerCase && i == 0 && d >= 'A' && d <= 'Z' {
+			d = d + 32
 		}
 		data = append(data, d)
 	}
