@@ -6,10 +6,13 @@
 ```
 func main() {
 
-	// 代码生成
+	// 数据库连接url
 	handle.Generate("123:456@tcp(127.0.0.1)/databaseName?tls=true",
+	// 数据库名称
 	"databaseName", 
+	// 表名，支持多表同时生成
 	[]string{"tableName1","tableName2"},
+	// 模块名
 	"moduleName")
 }
 ```
