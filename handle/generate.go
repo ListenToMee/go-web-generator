@@ -8,6 +8,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"os"
+	"sync"
 	"text/template"
 )
 
@@ -44,17 +45,33 @@ func Generate(url string, database string, tableNames []string, moduleName strin
 // Generate 生成代码
 func generateCode(con *gorm.DB, database string, tableNames []string, moduleName string) {
 
+	// 创建所需的文件夹
+	createDirs(".")
+
 	// 循环生成
 	for _, tableName := range tableNames {
-		doGenerate(con, database, tableName, moduleName)
+		wg.Add(1)
+		tableName := tableName
+		go doGenerate(con, database, tableName, moduleName)
 	}
+	wg.Wait()
 }
+
+var wg sync.WaitGroup
 
 // 生成单个表的文件
 func doGenerate(con *gorm.DB, database string, tableName string, moduleName string) {
 
+	defer wg.Done()
+
 	// 查询表信息
-	tableQuery, _ := con.Raw("select TABLE_NAME as TableName,TABLE_COMMENT as TableComment from information_schema.TABLES where table_schema = ? and table_name = ?;", database, tableName).Rows()
+	tableQuery, _ := con.Raw("select "+
+		"TABLE_NAME as TableName,"+
+		"TABLE_COMMENT as TableComment "+
+		"from "+
+		"information_schema.TABLES "+
+		"where "+
+		"table_schema = ? and table_name = ?;", database, tableName).Rows()
 
 	defer func(tableQuery *sql.Rows) {
 		err := tableQuery.Close()
@@ -65,7 +82,17 @@ func doGenerate(con *gorm.DB, database string, tableName string, moduleName stri
 	}(tableQuery)
 
 	// 查询属性信息
-	fieldQuery, _ := con.Raw("select COLUMN_NAME as ColumnName ,COLUMN_DEFAULT as ColumnDefault ,DATA_TYPE as DataType,COLUMN_KEY as ColumnKey,EXTRA as Extra,COLUMN_COMMENT as ColumnComment from information_schema.columns where table_schema = ? and table_name = ?;", database, tableName).Rows()
+	fieldQuery, _ := con.Raw("select "+
+		"COLUMN_NAME as ColumnName ,"+
+		"COLUMN_DEFAULT as ColumnDefault ,"+
+		"DATA_TYPE as DataType,"+
+		"COLUMN_KEY as ColumnKey,"+
+		"EXTRA as Extra,"+
+		"COLUMN_COMMENT as ColumnComment "+
+		"from "+
+		"information_schema.columns "+
+		"where "+
+		"table_schema = ? and table_name = ?;", database, tableName).Rows()
 
 	defer func(fieldQuery *sql.Rows) {
 		err := fieldQuery.Close()
@@ -103,169 +130,103 @@ func doGenerate(con *gorm.DB, database string, tableName string, moduleName stri
 	createFiles(object, tableName)
 }
 
+// 创建文件
 func createFiles(obj CommonObject, tableName string) {
 
 	// 创建po
-	createPO(obj, tableName)
+	createGoFile(obj, tableName, "PO.go", "./po", "./template/po.tpl", "po")
 
 	// 创建vo
-	createVO(obj, tableName)
+	createGoFile(obj, tableName, "VO.go", "./vo", "./template/vo.tpl", "vo")
 
 	// 创建add dto
-	createAddDTO(obj, tableName)
+	createGoFile(obj, tableName, "AddDTO.go", "./dto", "./template/addDto.tpl", "addDto")
 
 	// 创建page dto
-	createPageDTO(obj, tableName)
+	createGoFile(obj, tableName, "PageDTO.go", "./dto", "./template/pageDto.tpl", "pageDto")
 
 	// 创建controller
-	createController(obj, tableName)
+	createGoFile(obj, tableName, "Controller.go", "./controller", "./template/controller.tpl", "controller")
 
 	// 创建router
-	createRouter(obj, tableName)
+	createGoFile(obj, tableName, "Router.go", "./router", "./template/router.tpl", "router")
 
 	// 创建service
-	createService(obj, tableName)
+	createGoFile(obj, tableName, "Service.go", "./service", "./template/service.tpl", "service")
 }
 
-// 创建router相关文件
-func createService(obj CommonObject, tableName string) {
+// 创建所需的文件夹
+func createDirs(modulePath string) {
 
-	// 创建文件
-	file := createFile(utils.TransToCamel(tableName, false)+"Service.go", "./service")
+	// 创建 po 目录
+	createDir(modulePath, "/po")
 
-	// 校验是否存在po模板
-	t := template.Must(template.ParseGlob("./template/service.tpl"))
+	// 创建 vo 目录
+	createDir(modulePath, "/vo")
 
-	// 根据模板生成文件
-	createPOError := t.ExecuteTemplate(file, "service", obj)
-	if createPOError != nil {
-		fmt.Println(createPOError)
-		panic(errors.New("cannot create files with the template"))
-	}
+	// 创建 dto 目录
+	createDir(modulePath, "/dto")
+
+	// 创建 controller 目录
+	createDir(modulePath, "/controller")
+
+	// 创建 service 目录
+	createDir(modulePath, "/service")
+
+	// 创建 router 目录
+	createDir(modulePath, "/router")
 }
 
-// 创建router相关文件
-func createRouter(obj CommonObject, tableName string) {
+// 创建文件夹
+func createDir(modulePath string, dirName string) {
 
-	// 创建文件
-	file := createFile(utils.TransToCamel(tableName, false)+"Router.go", "./router")
-
-	// 校验是否存在po模板
-	t := template.Must(template.ParseGlob("./template/router.tpl"))
-
-	// 根据模板生成文件
-	createPOError := t.ExecuteTemplate(file, "router", obj)
-	if createPOError != nil {
-		fmt.Println(createPOError)
-		panic(errors.New("cannot create files with the template"))
-	}
-}
-
-// 创建controller相关文件
-func createController(obj CommonObject, tableName string) {
-
-	// 创建文件
-	file := createFile(utils.TransToCamel(tableName, false)+"Controller.go", "./controller")
-
-	// 校验是否存在po模板
-	t := template.Must(template.ParseGlob("./template/controller.tpl"))
-
-	// 根据模板生成文件
-	createPOError := t.ExecuteTemplate(file, "controller", obj)
-	if createPOError != nil {
-		fmt.Println(createPOError)
-		panic(errors.New("cannot create files with the template"))
-	}
-}
-
-// 创建vo相关文件
-func createVO(obj CommonObject, tableName string) {
-
-	// 创建文件
-	file := createFile(utils.TransToCamel(tableName, false)+"VO.go", "./vo")
-
-	// 校验是否存在po模板
-	t := template.Must(template.ParseGlob("./template/vo.tpl"))
-
-	// 根据模板生成文件
-	createPOError := t.ExecuteTemplate(file, "vo", obj)
-	if createPOError != nil {
-		fmt.Println(createPOError)
-		panic(errors.New("cannot create files with the template"))
-	}
-}
-
-// 创建add dto相关文件
-func createAddDTO(obj CommonObject, tableName string) {
-
-	// 创建文件
-	file := createFile(utils.TransToCamel(tableName, false)+"AddDTO.go", "./dto")
-
-	// 校验是否存在po模板
-	t := template.Must(template.ParseGlob("./template/addDto.tpl"))
-
-	// 根据模板生成文件
-	createPOError := t.ExecuteTemplate(file, "addDto", obj)
-	if createPOError != nil {
-		fmt.Println(createPOError)
-		panic(errors.New("cannot create files with the template"))
-	}
-}
-
-// 创建page dto相关文件
-func createPageDTO(obj CommonObject, tableName string) {
-
-	// 创建文件
-	file := createFile(utils.TransToCamel(tableName, false)+"PageDTO.go", "./dto")
-
-	// 校验是否存在po模板
-	t := template.Must(template.ParseGlob("./template/pageDto.tpl"))
-
-	// 根据模板生成文件
-	createPOError := t.ExecuteTemplate(file, "pageDto", obj)
-	if createPOError != nil {
-		fmt.Println(createPOError)
-		panic(errors.New("cannot create files with the template"))
-	}
-}
-
-// 创建po相关文件
-func createPO(obj CommonObject, tableName string) {
-
-	// 创建文件
-	file := createFile(utils.TransToCamel(tableName, false)+"PO.go", "./po")
-
-	// 校验是否存在po模板
-	t := template.Must(template.ParseGlob("./template/po.tpl"))
-
-	// 根据模板生成文件
-	createPOError := t.ExecuteTemplate(file, "po", obj)
-	if createPOError != nil {
-		fmt.Println(createPOError)
-		panic(errors.New("cannot create the po with the template"))
-	}
-}
-
-func createFile(fileName string, path string) *os.File {
+	// 路径
+	path := modulePath + dirName
 
 	// 查询文件是否存在
 	_, exist := os.Stat(path)
 
 	// 如果不存在，创建文件夹
-	if os.IsNotExist(exist) {
+	if exist != nil {
 		err := os.Mkdir(path, os.ModePerm)
 		if err != nil {
 			fmt.Println(err)
-			panic(errors.New("cannot create the dictionary " + fileName))
+			panic(errors.New("cannot create the dictionary " + dirName))
 
 		}
 	}
+}
 
-	// 先删除文件
-	err := os.RemoveAll(path + "/" + fileName)
-	if err != nil {
-		fmt.Println(err)
-		panic(errors.New("cannot delete the dictionary " + fileName))
+// 创建go文件
+func createGoFile(obj CommonObject, tableName string, filename string, path string, templatePath string, templateName string) {
+
+	// 创建文件
+	file := createFile(utils.TransToCamel(tableName, false)+filename, path)
+
+	// 如果为空，直接返回，无需创建
+	if file == nil {
+		return
+	}
+
+	// 校验是否存在po模板
+	t := template.Must(template.ParseGlob(templatePath))
+
+	// 根据模板生成文件
+	createPOError := t.ExecuteTemplate(file, templateName, obj)
+	if createPOError != nil {
+		fmt.Println(createPOError)
+		panic(errors.New("cannot create files with the template"))
+	}
+}
+
+// 创建文件，如果存在不创建
+func createFile(fileName string, path string) *os.File {
+
+	_, exist := os.Stat(path + "/" + fileName)
+
+	// 文件存在直接跳过
+	if exist == nil {
+		return nil
 	}
 
 	// 创建文件

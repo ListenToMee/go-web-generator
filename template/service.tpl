@@ -5,38 +5,38 @@ import (
 	"{{.ModuleName}}/vo"
 )
 
-// QueryPage {{.Table.TableComment}}分页查询
-func QueryPage(param dto.{{.Table.TableName}}PageDTO) []vo.{{.Table.TableName}}VO{
+// {{.Table.TableName}}QueryPage {{.Table.TableComment}}分页查询
+func {{.Table.TableName}}QueryPage(param dto.{{.Table.TableName}}PageDTO) []vo.{{.Table.TableName}}VO{
 
 	return []vo.{{.Table.TableName}}VO{}
 }
 
-// Add 新增{{.Table.TableComment}}
-func Add(param dto.{{.Table.TableName}}AddDTO) bool {
+// {{.Table.TableName}}Add 新增{{.Table.TableComment}}
+func {{.Table.TableName}}Add(param dto.{{.Table.TableName}}AddDTO) bool {
 
 	return true
 }
 
-// Update 更新{{.Table.TableComment}}
-func Update(param dto.{{.Table.TableName}}AddDTO) bool{
+// {{.Table.TableName}}Update 更新{{.Table.TableComment}}
+func {{.Table.TableName}}Update(param dto.{{.Table.TableName}}AddDTO) bool{
 
 	return true
 }
 
-// QueryDetails 查询{{.Table.TableComment}}
-func QueryDetails(id int64) vo.{{.Table.TableName}}VO{
+// {{.Table.TableName}}QueryDetails 查询{{.Table.TableComment}}
+func {{.Table.TableName}}QueryDetails(id int64) vo.{{.Table.TableName}}VO{
 
 	return vo.{{.Table.TableName}}VO{}
 }
 
-// Delete 删除{{.Table.TableComment}}
-func Delete(id int64) bool {
+// {{.Table.TableName}}Delete 删除{{.Table.TableComment}}
+func {{.Table.TableName}}Delete(id int64) bool {
 
 	return true
 }
 
-// DeleteBatch 批量删除{{.Table.TableComment}}
-func DeleteBatch(id []int64) bool {
+// {{.Table.TableName}}DeleteBatch 批量删除{{.Table.TableComment}}
+func {{.Table.TableName}}DeleteBatch(id []int64) bool {
 
 	return true
 }{{end}}
