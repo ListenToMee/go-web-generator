@@ -2,7 +2,6 @@ package handle
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"go-web-generator/utils"
 	"gorm.io/driver/mysql"
@@ -77,7 +76,7 @@ func doGenerate(con *gorm.DB, database string, tableName string, moduleName stri
 		err := tableQuery.Close()
 		if err != nil {
 			fmt.Println(err)
-			panic(errors.New("failed to close"))
+			panic("failed to close")
 		}
 	}(tableQuery)
 
@@ -98,7 +97,7 @@ func doGenerate(con *gorm.DB, database string, tableName string, moduleName stri
 		err := fieldQuery.Close()
 		if err != nil {
 			fmt.Println(err)
-			panic(errors.New("failed to close"))
+			panic("failed to close")
 		}
 	}(fieldQuery)
 
@@ -109,7 +108,7 @@ func doGenerate(con *gorm.DB, database string, tableName string, moduleName stri
 
 	// 校验表是否存在
 	if len(tables) == 0 {
-		panic(errors.New("cannot find the table: " + tableName))
+		panic("cannot find the table: " + tableName)
 	}
 
 	// 处理属性
@@ -191,7 +190,7 @@ func createDir(modulePath string, dirName string) {
 		err := os.Mkdir(path, os.ModePerm)
 		if err != nil {
 			fmt.Println(err)
-			panic(errors.New("cannot create the dictionary " + dirName))
+			panic("cannot create the dictionary " + dirName)
 
 		}
 	}
@@ -215,8 +214,15 @@ func createGoFile(obj CommonObject, tableName string, filename string, path stri
 	createPOError := t.ExecuteTemplate(file, templateName, obj)
 	if createPOError != nil {
 		fmt.Println(createPOError)
-		panic(errors.New("cannot create files with the template"))
+		panic("cannot create files with the template")
 	}
+
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			panic("close file error")
+		}
+	}(file)
 }
 
 // 创建文件，如果存在不创建
@@ -267,7 +273,7 @@ func convertField(con *gorm.DB, query *sql.Rows) []FieldResult {
 		err := con.ScanRows(query, &str)
 		if err != nil {
 			fmt.Println(err)
-			panic(errors.New("failed to scan rows"))
+			panic("failed to scan rows")
 		}
 		fields = append(fields, str)
 	}
@@ -284,7 +290,7 @@ func convertTable(con *gorm.DB, query *sql.Rows) []TableResult {
 		err := con.ScanRows(query, &str)
 		if err != nil {
 			fmt.Println(err)
-			panic(errors.New("failed to scan rows"))
+			panic("failed to scan rows")
 		}
 		tables = append(tables, str)
 	}
@@ -295,7 +301,7 @@ func convertTable(con *gorm.DB, query *sql.Rows) []TableResult {
 func connect(url string) *gorm.DB {
 
 	if len(url) == 0 {
-		panic(errors.New("connection strings cannot be empty"))
+		panic("connection strings cannot be empty")
 	}
 
 	// 获取连接
@@ -303,7 +309,7 @@ func connect(url string) *gorm.DB {
 
 	if err != nil {
 		fmt.Println(err)
-		panic(errors.New("failed to connect to database,check your connection strings"))
+		panic("failed to connect to database,check your connection strings")
 	}
 
 	return con
